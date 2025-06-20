@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Área do Profissional - SOS Casa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background: url('images/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    header {
+      background-color: #4f0fff;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .username {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .logout-btn {
+      border: 2px solid white;
+      background: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .logout-btn:hover {
+      background-color: white;
+      color: #4f0fff;
+    }
+
+    .mensagem-aprovacao {
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 15px 20px;
+      margin: 20px;
+      text-align: center;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    .mensagem-aprovacao.erro {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      color: #856404;
+    }
+
+    .botoes-principais {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px;
+    }
+
+    .botao-link {
+      background-color: #4f0fff;
+      color: white;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.2s;
+    }
+
+    .botao-link:hover {
+      transform: scale(1.05);
+    }
+
+    #badge {
+      background: red;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 50%;
+      font-size: 12px;
+      margin-left: -4px;
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .username {
+        font-size: 18px;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .logout-btn {
+        font-size: 14px;
+        padding: 5px 10px;
+      }
+
+      .mensagem-aprovacao {
+        font-size: 14px;
+        margin: 15px;
+      }
+
+      .botao-link {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="username" id="nome-prof">Olá, [Nome]!</div>
+    <button class="logout-btn" onclick="logout()">LogOut</button>
+  </header>
+
+  <div id="mensagem" class="mensagem-aprovacao">A verificar estado de aprovação...</div>
+
+  <div class="botoes-principais">
+    <a href="perfil_prof.html" class="botao-link" id="perfilLink">👤 Perfil</a>
+    <a href="marcacoes_prof.html" class="botao-link">📅 Marcações</a>
+    <a href="notificacoes_prof.html" class="botao-link">🔔 Notificações <span id="badge">0</span></a>
+  </div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    async function logout() {
+      await supabase.auth.signOut();
+      window.location.href = "login.html";
+    }
+
+    async function verificarAprovacao() {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      const msg = document.getElementById("mensagem");
+
+      if (error || !session || !session.user) {
+        msg.innerText = "Erro ao obter sessão autenticada.";
+        msg.classList.add("erro");
+        return;
+      }
+
+      const user = session.user;
+
+      const { data, error: perfilError } = await supabase
+        .from('profiles')
+        .select('aprovado')
+        .eq('id', user.id)
+        .single();
+
+      if (perfilError || !data) {
+        msg.innerText = "Erro ao verificar aprovação.";
+        msg.classList.add("erro");
+        return;
+      }
+
+      if (data.aprovado === true) {
+        msg.innerText = "Aprovado! Pode usar a plataforma.";
+        msg.classList.remove("erro");
+      } else {
+        msg.classList.add("erro");
+        msg.innerHTML = `
+          Tem que enviar o seu certificado profissional por email para 
+          <strong>admin@soscasa.pt</strong><br><br>
+          <a href="mailto:admin@soscasa.pt?subject=Certificado%20Profissional&body=Olá%20Admin,%0A%0AEnvio%20em%20anexo%20o%20meu%20certificado%20profissional%20para%20aprovação.%0A%0ACumprimentos," target="_blank">
+            Clica aqui para abrir o Gmail com o email já preenchido
+          </a><br><br>
+          Após o envio, aguarde aprovação de um administrador.
+        `;
+      }
+    }
+
+    async function configurarLinkPerfil() {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user) {
+        document.getElementById("perfilLink").href = `perfil_prof.html?id=${user.id}`;
+      }
+    }
+
+    async function contarNotificacoesPendentes() {
+      const { data: session } = await supabase.auth.getUser();
+      if (!session?.user) return;
+
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('id')
+        .eq('profissional_id', session.user.id)
+        .eq('estado', 'pendente')
+        .eq('visto_pelo_profissional', false);
+
+      if (data?.length > 0) {
+        const badge = document.getElementById("badge");
+        badge.innerText = data.length;
+        badge.style.display = "inline-block";
+      }
+    }
+
+    async function carregarNomeProfissional() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('nome')
+          .eq('id', user.id)
+          .single();
+
+        if (data && data.nome) {
+          document.getElementById("nome-prof").innerText = `Olá, ${data.nome}!`;
+        }
+      }
+    }
+
+    verificarAprovacao();
+    configurarLinkPerfil();
+    contarNotificacoesPendentes();
+    carregarNomeProfissional();
+  </script>
+</body>
+</html>

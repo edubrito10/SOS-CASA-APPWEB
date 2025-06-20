@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil do Profissional</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: url('fundo.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    .header {
+      background-color: #4b12ea;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .logout-btn {
+      background-color: #f1e2cd;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .logout-btn:hover {
+      background-color: #e0d1bb;
+    }
+
+    .container {
+      max-width: 95%;
+      margin: 20px auto;
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .perfil p {
+      margin: 10px 0;
+      font-size: 15px;
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #333;
+      font-size: 20px;
+    }
+
+    .foto-trabalho img {
+      width: 100px;
+      margin: 8px 8px 0 0;
+      border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.2);
+      cursor: pointer;
+    }
+
+    .btn-voltar,
+    .btn-marcar {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 25px;
+      margin-top: 20px;
+      cursor: pointer;
+      border: none;
+      font-weight: bold;
+    }
+
+    .btn-voltar:hover,
+    .btn-marcar:hover {
+      background-color: #45a049;
+    }
+
+    .avaliacao {
+      background: #fff;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+      font-size: 14px;
+    }
+
+    .avaliacao p {
+      margin: 4px 0;
+    }
+
+    .avaliacao small {
+      color: #555;
+    }
+
+    .avatar-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .avatar-container img {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #ccc;
+    }
+
+    @media (max-width: 600px) {
+      .header h1 {
+        font-size: 18px;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .logout-btn {
+        font-size: 14px;
+        padding: 6px 12px;
+      }
+
+      h2 {
+        font-size: 18px;
+      }
+
+      .perfil p {
+        font-size: 14px;
+      }
+
+      .foto-trabalho img {
+        width: 80px;
+      }
+
+      .btn-voltar, .btn-marcar {
+        font-size: 14px;
+        padding: 8px 16px;
+      }
+
+      .avaliacao {
+        font-size: 13px;
+      }
+
+      .avatar-container img {
+        width: 110px;
+        height: 110px;
+      }
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      padding-top: 60px;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: rgba(0,0,0,0.8);
+    }
+
+    .modal-content {
+      margin: auto;
+      display: block;
+      max-width: 90%;
+      max-height: 80vh;
+      border-radius: 10px;
+      transition: transform 0.25s ease;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 30px;
+      right: 35px;
+      color: white;
+      font-size: 30px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Perfil do Profissional</h1>
+    <a href="#" id="voltar"><button class="logout-btn">Voltar</button></a>
+  </div>
+
+  <div class="container">
+    <div class="perfil">
+      <div class="avatar-container">
+        <img id="avatar-img" src="images/user.png" alt="Avatar do Profissional">
+      </div>
+      <p><strong>Nome:</strong> <span id="nome"></span></p>
+      <p><strong>Especialidade:</strong> <span id="especialidade"></span></p>
+      <p><strong>Localidade:</strong> <span id="localidade"></span></p>
+      <p><strong>Telefone:</strong> <span id="telefone"></span></p>
+      <p><strong>Email:</strong> <span id="email"></span></p>
+
+      <div class="foto-trabalho">
+        <strong>Fotos de Trabalho:</strong>
+        <div id="fotos"></div>
+      </div>
+
+      <button id="btn-marcar" class="btn-marcar" onclick="irParaMarcacao()">Marcar</button>
+    </div>
+
+    <h2>Avaliações dos Clientes</h2>
+    <p id="media-estrelas">A carregar média...</p>
+    <div id="avaliacoes">A carregar avaliações...</div>
+  </div>
+
+  <div id="imgModal" class="modal">
+    <span class="modal-close" onclick="fecharModal()">&times;</span>
+    <img class="modal-content" id="imgModalContent">
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    let profissionalId = null;
+
+    async function carregarPerfil() {
+      const params = new URLSearchParams(window.location.search);
+      profissionalId = params.get('id');
+      const fromPage = params.get('from_page');
+
+      if (!profissionalId) {
+        alert('ID do profissional não encontrado na URL.');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('nome, especialidade, localidade, telemovel, email, fotos_trabalhos, avatar_url')
+        .eq('id', profissionalId)
+        .single();
+
+      if (error || !data) {
+        alert('Erro ao carregar o perfil!');
+        console.error(error);
+        return;
+      }
+
+      document.getElementById('nome').textContent = data.nome;
+      document.getElementById('especialidade').textContent = data.especialidade;
+      document.getElementById('localidade').textContent = data.localidade;
+      document.getElementById('telefone').textContent = data.telemovel;
+      document.getElementById('email').textContent = data.email;
+
+      const avatarImg = document.getElementById("avatar-img");
+      if (data.avatar_url) {
+        avatarImg.src = data.avatar_url + `?t=${Date.now()}`;
+      }
+
+      const fotosContainer = document.getElementById('fotos');
+      if (Array.isArray(data.fotos_trabalhos) && data.fotos_trabalhos.length > 0) {
+        data.fotos_trabalhos.forEach(foto => {
+          const img = document.createElement('img');
+          img.src = foto;
+          img.alt = 'Foto de Trabalho';
+          fotosContainer.appendChild(img);
+        });
+      } else {
+        fotosContainer.innerHTML = 'Nenhuma foto disponível.';
+      }
+
+      const voltarButton = document.getElementById('voltar');
+      voltarButton.href = fromPage ? decodeURIComponent(fromPage) : 'home_cliente.html';
+
+      if (fromPage === 'home_admin.html') {
+        document.getElementById("btn-marcar").style.display = "none";
+      }
+
+      carregarAvaliacoes();
+    }
+
+    async function carregarAvaliacoes() {
+      const mediaEl = document.getElementById("media-estrelas");
+      const container = document.getElementById("avaliacoes");
+      container.innerHTML = "";
+
+      const { data: avaliacoes, error } = await supabase
+        .from('avaliacoes')
+        .select('estrelas, comentario, created_at')
+        .eq('profissional_id', profissionalId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Erro ao carregar avaliações:", error);
+        mediaEl.innerText = "Erro ao calcular média.";
+        container.innerHTML = "<p>Erro ao carregar avaliações.</p>";
+        return;
+      }
+
+      if (avaliacoes.length === 0) {
+        mediaEl.innerText = "Ainda sem avaliações.";
+        container.innerHTML = "<p>Este profissional ainda não tem avaliações.</p>";
+        return;
+      }
+
+      const total = avaliacoes.reduce((sum, a) => sum + a.estrelas, 0);
+      const media = (total / avaliacoes.length).toFixed(1);
+      mediaEl.innerText = `⭐ Média: ${media}/5 (${avaliacoes.length} avaliação${avaliacoes.length > 1 ? 'es' : ''})`;
+
+      avaliacoes.forEach(av => {
+        const div = document.createElement("div");
+        div.className = "avaliacao";
+        div.innerHTML = `
+          <p><strong>⭐ ${av.estrelas}</strong></p>
+          <p>${av.comentario || "Sem comentário"}</p>
+          <small>${new Date(av.created_at).toLocaleDateString()}</small>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function irParaMarcacao() {
+      window.location.href = `marcacao.html?id=${profissionalId}`;
+    }
+
+    // Modal Zoom
+    let scale = 1;
+    let startDist = 0;
+
+    document.getElementById('fotos').addEventListener('click', function(event) {
+      if (event.target.tagName === 'IMG') {
+        const modal = document.getElementById('imgModal');
+        const modalImg = document.getElementById('imgModalContent');
+        modal.style.display = 'block';
+        modalImg.src = event.target.src;
+        scale = 1;
+        modalImg.style.transform = `scale(${scale})`;
+      }
+    });
+
+    function fecharModal() {
+      document.getElementById('imgModal').style.display = 'none';
+    }
+
+    const modalImg = document.getElementById('imgModalContent');
+    modalImg.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      scale += e.deltaY * -0.001;
+      scale = Math.min(Math.max(.5, scale), 5);
+      modalImg.style.transform = `scale(${scale})`;
+    });
+
+    modalImg.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 2) {
+        startDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    });
+
+    modalImg.addEventListener('touchmove', function(e) {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        let newDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        let pinchScale = newDist / startDist;
+        scale = Math.min(Math.max(.5, pinchScale), 5);
+        modalImg.style.transform = `scale(${scale})`;
+      }
+    }, { passive: false });
+
+    carregarPerfil();
+  </script>
+</body>
+</html>

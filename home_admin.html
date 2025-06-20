@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - SOS Casa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #fff;
+    }
+    .header {
+      background-color: #4b12ea;
+      color: white;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .header h1 {
+      font-size: 20px;
+      margin: 0;
+      flex: 1;
+    }
+    .logout-btn {
+      border: 2px solid white;
+      background: none;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .logout-btn:hover {
+      background-color: white;
+      color: #4b12ea;
+    }
+    .menu {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 20px;
+    }
+    .menu button {
+      background-color: #4b12ea;
+      color: white;
+      padding: 12px 20px;
+      font-size: 14px;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+    }
+    .menu button:hover {
+      background-color: #370ec6;
+    }
+    .secao {
+      display: none;
+      padding: 20px;
+    }
+    .secao.ativa {
+      display: block;
+    }
+    .card {
+      background: white;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      font-size: 14px;
+    }
+    .btn {
+      padding: 6px 14px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn.aprovar {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .btn.rejeitar {
+      background-color: #f44336;
+      color: white;
+    }
+    #erro {
+      color: red;
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+    }
+    .filtros {
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    select, input[type="text"], button {
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    @media (max-width: 600px) {
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .logout-btn {
+        margin-top: 10px;
+      }
+      .menu {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .card {
+        font-size: 13px;
+      }
+      .filtros {
+        flex-direction: column;
+      }
+      .menu button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div style="flex: 1;">
+    <h1 id="admin-nome">Olá, [Nome]!</h1>
+  </div>
+  <button class="logout-btn" onclick="logout()">LogOut</button>
+</div>
+
+<div class="menu">
+  <button onclick="mostrarSecao('aprovacoes')">Aprovações</button>
+  <button onclick="mostrarSecao('profissionais')">Perfis</button>
+  <button onclick="mostrarSecao('agendamentos')">Agendamentos</button>
+</div>
+
+<div id="erro"></div>
+
+<div id="secao-aprovacoes" class="secao">
+  <h2>Profissionais por Aprovar</h2>
+  <div id="lista-profissionais">A carregar...</div>
+</div>
+
+<div id="secao-profissionais" class="secao">
+  <h2>Todos os Perfis</h2>
+  <div class="filtros">
+    <select id="filtro-tipo" onchange="carregarTodosPerfis()">
+      <option value="">-- Tipo --</option>
+      <option value="cliente">Cliente</option>
+      <option value="profissional">Profissional</option>
+    </select>
+    <select id="filtro-especialidade">
+      <option value="">-- Especialidade --</option>
+      <option value="canalizacao">Canalização</option>
+      <option value="eletricidade">Eletricidade</option>
+      <option value="carpintaria">Carpintaria</option>
+      <option value="limpeza">Limpeza</option>
+    </select>
+    <select id="filtro-distrito" onchange="preencherConcelhosAdmin()">
+      <option value="">-- Distrito --</option>
+    </select>
+    <select id="filtro-concelho">
+      <option value="">-- Concelho --</option>
+    </select>
+    <input type="text" id="filtro-nome" placeholder="Pesquisar nome/apelido..." oninput="carregarTodosPerfis()" />
+    <button onclick="carregarTodosPerfis()">Filtrar</button>
+    <button onclick="limparFiltrosAdmin()">Limpar</button>
+  </div>
+  <div id="todos-perfis-conteudo">A carregar...</div>
+</div>
+<div id="secao-agendamentos" class="secao">
+  <h2>Agendamentos</h2>
+  <div class="filtros">
+    <select id="filtro-distrito-agendamento" onchange="preencherConcelhosAgendamento()">
+      <option value="">-- Distrito --</option>
+    </select>
+    <select id="filtro-concelho-agendamento">
+      <option value="">-- Concelho --</option>
+    </select>
+    <select id="filtro-estado-agendamento" onchange="carregarAgendamentos()">
+      <option value="">-- Estado --</option>
+      <option value="pendente">Pendente</option>
+      <option value="aceite">Aceite</option>
+      <option value="recusado">Recusado</option>
+    </select>
+    <select id="filtro-confirmado-cliente" onchange="carregarAgendamentos()">
+      <option value="">-- Confirmado pelo Cliente --</option>
+      <option value="true">Sim</option>
+      <option value="false">Não</option>
+    </select>
+    <button onclick="carregarAgendamentos()">Filtrar</button>
+    <button onclick="limparFiltrosAgendamento()">Limpar</button>
+  </div>
+  <div id="todos-agendamentos-conteudo">A carregar...</div>
+</div>
+
+<script>
+const supabase = window.supabase.createClient(
+  'https://fqshqdfhmptuvjskptzl.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+);
+
+function mostrarSecao(secao) {
+  document.querySelectorAll('.secao').forEach(div => div.classList.remove('ativa'));
+  document.getElementById('secao-' + secao).classList.add('ativa');
+}
+
+async function logout() {
+  await supabase.auth.signOut();
+  window.location.href = "login.html";
+}
+
+async function verificarAdmin() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    document.getElementById("erro").innerText = "Não autenticado. Faz login como administrador.";
+    return null;
+  }
+  const { data: perfil } = await supabase
+    .from('profiles')
+    .select('tipo, nome')
+    .eq('id', session.user.id)
+    .single();
+  if (!perfil || perfil.tipo !== 'admin') {
+    document.getElementById("erro").innerText = "Acesso negado. Não és administrador.";
+    return null;
+  }
+  document.getElementById("admin-nome").innerText = `Olá, ${perfil.nome}!`;
+  return true;
+}
+
+function preencherConcelhosAdmin() {
+  const distrito = document.getElementById("filtro-distrito").value;
+  const select = document.getElementById("filtro-concelho");
+  select.innerHTML = '<option value="">-- Concelho --</option>';
+  distritosConcelhos[distrito]?.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    select.appendChild(opt);
+  });
+}
+
+function preencherConcelhosAgendamento() {
+  const distrito = document.getElementById("filtro-distrito-agendamento").value;
+  const select = document.getElementById("filtro-concelho-agendamento");
+  select.innerHTML = '<option value="">-- Concelho --</option>';
+  distritosConcelhos[distrito]?.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    select.appendChild(opt);
+  });
+}
+
+function limparFiltrosAdmin() {
+  document.getElementById("filtro-tipo").value = "";
+  document.getElementById("filtro-especialidade").value = "";
+  document.getElementById("filtro-distrito").value = "";
+  document.getElementById("filtro-concelho").innerHTML = '<option value="">-- Concelho --</option>';
+  document.getElementById("filtro-nome").value = "";
+  carregarTodosPerfis();
+}
+
+function limparFiltrosAgendamento() {
+  document.getElementById("filtro-distrito-agendamento").value = "";
+  document.getElementById("filtro-concelho-agendamento").innerHTML = '<option value="">-- Concelho --</option>';
+  document.getElementById("filtro-estado-agendamento").value = "";
+  document.getElementById("filtro-confirmado-cliente").value = "";
+  carregarAgendamentos();
+}
+
+let distritosConcelhos = {};
+async function carregarDistritosAdmin() {
+  const response = await fetch("localidades.json");
+  distritosConcelhos = await response.json();
+  ["filtro-distrito", "filtro-distrito-agendamento"].forEach(id => {
+    const select = document.getElementById(id);
+    Object.keys(distritosConcelhos).forEach(distrito => {
+      const opt = document.createElement("option");
+      opt.value = distrito;
+      opt.textContent = distrito;
+      select.appendChild(opt);
+    });
+  });
+}
+
+async function carregarTodosPerfis() {
+  const container = document.getElementById("todos-perfis-conteudo");
+  container.innerHTML = "A carregar...";
+
+  const tipo = document.getElementById("filtro-tipo").value;
+  const especialidade = document.getElementById("filtro-especialidade").value;
+  const distrito = document.getElementById("filtro-distrito").value;
+  const concelho = document.getElementById("filtro-concelho").value;
+  const termoNome = document.getElementById("filtro-nome").value.toLowerCase();
+
+  let query = supabase.from('profiles').select('id, nome, apelido, email, tipo, aprovado, especialidade, localidade');
+  if (tipo) query = query.eq('tipo', tipo);
+  if (especialidade) query = query.eq('especialidade', especialidade);
+  if (distrito && concelho) query = query.eq('localidade', `${distrito} - ${concelho}`);
+  else if (distrito) query = query.like('localidade', `${distrito} -%`);
+
+  const { data } = await query;
+  const filtrados = termoNome
+    ? data?.filter(p => (`${p.nome} ${p.apelido}`).toLowerCase().includes(termoNome))
+    : data;
+
+  container.innerHTML = "";
+  if (!filtrados?.length) {
+    container.innerText = "Nenhum perfil encontrado.";
+    return;
+  }
+
+  filtrados.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <p><strong>${p.nome} ${p.apelido}</strong> (${p.tipo})</p>
+      <p>Email: ${p.email}</p>
+      <p>Especialidade: ${p.especialidade || '-'}</p>
+      <p>Localidade: ${p.localidade || '-'}</p>
+      ${p.tipo === 'profissional' ? `<p>Aprovado: ${p.aprovado ? 'Sim' : 'Não'}</p>` : ''}
+      ${
+        p.tipo === 'profissional' && p.aprovado
+          ? `<button class="btn" onclick="verPerfilProfissional('${p.id}')">Ver Perfil</button>`
+          : p.tipo === 'cliente'
+          ? `<button class="btn" onclick="verPerfilCliente('${p.id}')">Ver Perfil</button>`
+          : ''
+      }
+    `;
+    container.appendChild(div);
+  });
+}
+
+function verPerfilProfissional(id) {
+  const url = `ver_perfil_prof.html?id=${id}&from_page=${encodeURIComponent('home_admin.html')}`;
+  window.location.href = url;
+}
+
+function verPerfilCliente(id) {
+  const url = `ver_perfil_cliente.html?id=${id}&from_page=${encodeURIComponent('home_admin.html')}`;
+  window.location.href = url;
+}
+
+async function carregarProfissionais() {
+  const container = document.getElementById("lista-profissionais");
+  container.innerHTML = "A carregar...";
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, email, nome, apelido')
+    .eq('tipo', 'profissional')
+    .eq('aprovado', false);
+
+  container.innerHTML = "";
+  data?.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <p><strong>${p.nome} ${p.apelido}</strong></p>
+      <p>Email: ${p.email}</p>
+      <button class="btn aprovar" onclick="aprovar('${p.id}')">Aprovar</button>
+      <button class="btn rejeitar" onclick="rejeitar('${p.id}')">Rejeitar</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+async function aprovar(id) {
+  await supabase.from('profiles').update({ aprovado: true, rejeitado: false }).eq('id', id);
+  carregarProfissionais();
+}
+
+async function rejeitar(id) {
+  await supabase.from('profiles').update({ aprovado: false, rejeitado: true }).eq('id', id);
+  carregarProfissionais();
+}
+
+async function carregarAgendamentos() {
+  const container = document.getElementById("todos-agendamentos-conteudo");
+  container.innerHTML = "A carregar...";
+
+  const estado = document.getElementById("filtro-estado-agendamento").value;
+  const confirmado = document.getElementById("filtro-confirmado-cliente").value;
+  const distrito = document.getElementById("filtro-distrito-agendamento").value;
+  const concelho = document.getElementById("filtro-concelho-agendamento").value;
+
+  let query = supabase.from('agendamentos').select(`
+    id, data, hora_inicio, hora_fim, telefone, morada, observacao, estado, confirmado_pelo_cliente,
+    cliente:cliente_id (nome, apelido, email),
+    profissional:profissional_id (nome, apelido, email)
+  `);
+
+  if (estado) query = query.eq('estado', estado);
+  if (confirmado) query = query.eq('confirmado_pelo_cliente', confirmado === 'true');
+  if (distrito && concelho) query = query.ilike('morada', `%${distrito}%${concelho}%`);
+  else if (distrito) query = query.ilike('morada', `%${distrito}%`);
+
+  const { data } = await query;
+  container.innerHTML = "";
+  if (!data?.length) {
+    container.innerText = "Nenhum agendamento encontrado.";
+    return;
+  }
+
+  data.forEach(a => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <p><strong>Cliente:</strong> ${a.cliente?.nome || '---'} ${a.cliente?.apelido || ''} (${a.cliente?.email || ''})</p>
+      <p><strong>Profissional:</strong> ${a.profissional?.nome || '---'} ${a.profissional?.apelido || ''} (${a.profissional?.email || ''})</p>
+      <p><strong>Data:</strong> ${a.data}</p>
+      <p><strong>Hora:</strong> ${a.hora_inicio} - ${a.hora_fim}</p>
+      <p><strong>Telefone:</strong> ${a.telefone}</p>
+      <p><strong>Morada:</strong> ${a.morada}</p>
+      <p><strong>Observação:</strong> ${a.observacao || '-'}</p>
+      <p><strong>Estado:</strong> ${a.estado}</p>
+      <p><strong>Confirmado pelo cliente:</strong> ${a.confirmado_pelo_cliente ? 'Sim' : 'Não'}</p>
+    `;
+    container.appendChild(div);
+  });
+}
+
+(async () => {
+  const permitido = await verificarAdmin();
+  if (permitido) {
+    await carregarDistritosAdmin();
+    carregarProfissionais();
+    carregarTodosPerfis();
+    carregarAgendamentos();
+    mostrarSecao('aprovacoes');
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Notificações - Cliente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('images/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    header {
+      background-color: #4f0fff;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .logout-btn {
+      border: 2px solid white;
+      background: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .logout-btn:hover {
+      background-color: white;
+      color: #4f0fff;
+    }
+
+    .voltar-btn-container {
+      padding: 16px;
+    }
+
+    .voltar-btn {
+      background-color: #f1e2cd;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .voltar-btn:hover {
+      background-color: #e0d1bb;
+    }
+
+    .container {
+      max-width: 95%;
+      margin: 20px auto;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+      font-size: 22px;
+    }
+
+    .notificacao {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      border-left: 6px solid #ccc;
+      font-size: 15px;
+    }
+
+    .notificacao.recusado {
+      border-left-color: #dc3545;
+    }
+
+    .notificacao.aceite {
+      border-left-color: #28a745;
+    }
+
+    .notificacao p {
+      margin: 6px 0;
+    }
+
+    .notificacao strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 16px;
+    }
+
+    .mensagem {
+      text-align: center;
+      font-weight: bold;
+      color: #555;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      header h1 {
+        margin-bottom: 10px;
+        font-size: 18px;
+      }
+
+      .logout-btn {
+        padding: 6px 12px;
+        font-size: 14px;
+      }
+
+      .notificacao {
+        font-size: 14px;
+        padding: 12px;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Notificações</h1>
+    <button class="logout-btn" onclick="logout()">LogOut</button>
+  </header>
+
+  <div class="voltar-btn-container">
+    <a href="home_cliente.html">
+      <button class="voltar-btn">Voltar à Home</button>
+    </a>
+  </div>
+
+  <div class="container">
+    <h2>Notificações de Marcações</h2>
+    <div id="notificacoes" class="mensagem">A carregar...</div>
+  </div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    async function logout() {
+      await supabase.auth.signOut();
+      window.location.href = "login.html";
+    }
+
+    async function carregarNotificacoesCliente() {
+      const { data: session } = await supabase.auth.getUser();
+      if (!session?.user) {
+        document.getElementById("notificacoes").innerText = "Precisa de estar autenticado.";
+        return;
+      }
+
+      const clienteId = session.user.id;
+
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .in('estado', ['recusado', 'aceite'])
+        .eq('visto_pelo_cliente', false);
+
+      if (error || !data) {
+        document.getElementById("notificacoes").innerText = "Erro ao carregar notificações.";
+        console.error(error);
+        return;
+      }
+
+      if (data.length === 0) {
+        document.getElementById("notificacoes").innerText = "Sem notificações novas.";
+        return;
+      }
+
+      const container = document.getElementById("notificacoes");
+      container.innerHTML = "";
+
+      const idsParaMarcar = [];
+
+      data.forEach(p => {
+        idsParaMarcar.push(p.id);
+        const div = document.createElement("div");
+        div.className = "notificacao " + p.estado;
+        div.innerHTML = `
+          <strong>Sua marcação foi ${p.estado === 'recusado' ? 'recusada ❌' : 'aceite ✅'}.</strong>
+          <p><strong>Data:</strong> ${p.data} às ${p.hora_inicio}</p>
+          <p><strong>Morada:</strong> ${p.morada}</p>
+          <p><strong>Observações:</strong> ${p.observacao || "—"}</p>
+        `;
+        container.appendChild(div);
+      });
+
+      if (idsParaMarcar.length > 0) {
+        await supabase
+          .from('agendamentos')
+          .update({ visto_pelo_cliente: true })
+          .in('id', idsParaMarcar);
+      }
+    }
+
+    carregarNotificacoesCliente();
+  </script>
+</body>
+</html>

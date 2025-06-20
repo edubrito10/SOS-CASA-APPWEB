@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meus Favoritos - SOS Casa</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('images/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    header {
+      background-color: #4f0fff;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+
+    .logout-btn {
+      border: 2px solid white;
+      background: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .logout-btn:hover {
+      background-color: white;
+      color: #4f0fff;
+    }
+
+    .voltar-btn-container {
+      padding: 16px;
+    }
+
+    .voltar-btn {
+      background-color: #f1e2cd;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .voltar-btn:hover {
+      background-color: #e0d1bb;
+    }
+
+    .container {
+      max-width: 100%;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      margin: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    .profissional {
+      background: #fff;
+      padding: 16px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .profissional p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+
+    .btn-ver-perfil {
+      display: inline-block;
+      padding: 10px 16px;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 30px;
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+
+    .btn-ver-perfil:hover {
+      background-color: #388e3c;
+    }
+
+    .btn-marcar {
+      background-color: #FFA500;
+      margin-left: 10px;
+    }
+
+    .btn-marcar:hover {
+      background-color: #e69500;
+    }
+
+    .icone-favorito {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      margin-left: 10px;
+      vertical-align: middle;
+      transition: transform 0.2s;
+    }
+
+    .icone-favorito:hover {
+      transform: scale(1.2);
+    }
+
+    .mensagem {
+      text-align: center;
+      font-weight: bold;
+      color: #555;
+      font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .btn-ver-perfil, .btn-marcar {
+        display: block;
+        width: 100%;
+        margin: 10px 0 0 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Meus Favoritos</h1>
+    <button class="logout-btn" onclick="logout()">LogOut</button>
+  </header>
+
+  <div class="voltar-btn-container">
+    <a href="home_cliente.html">
+      <button class="voltar-btn">Voltar à Home</button>
+    </a>
+  </div>
+
+  <div class="container">
+    <h2>Profissionais Favoritos</h2>
+    <div id="lista-favoritos" class="mensagem">A carregar...</div>
+  </div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    let userId = null;
+
+    async function logout() {
+      await supabase.auth.signOut();
+      window.location.href = "login.html";
+    }
+
+    async function carregarFavoritos() {
+      const { data: session } = await supabase.auth.getUser();
+      const container = document.getElementById("lista-favoritos");
+
+      if (!session?.user) {
+        container.innerText = "Precisa de estar autenticado.";
+        return;
+      }
+
+      userId = session.user.id;
+
+      const { data, error } = await supabase
+        .from("favoritos")
+        .select("profissional_id, profiles:profissional_id(id, nome, apelido, especialidade, localidade, email, telemovel) ")
+        .eq("cliente_id", userId);
+
+      if (error) {
+        console.error(error);
+        container.innerText = "Erro ao carregar favoritos.";
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        container.innerText = "Nenhum profissional adicionado aos favoritos.";
+        return;
+      }
+
+      container.innerHTML = "";
+
+      data.forEach(fav => {
+        const prof = fav.profiles;
+        const div = document.createElement("div");
+        div.className = "profissional";
+        div.innerHTML = `
+          <p><strong>${prof.nome} ${prof.apelido}</strong></p>
+          <p><strong>Especialidade:</strong> ${prof.especialidade}</p>
+          <p><strong>Localidade:</strong> ${prof.localidade || 'Não definida'}</p>
+          <p><strong>Email:</strong> ${prof.email}</p>
+          <p><strong>Telemóvel:</strong> ${prof.telemovel}</p>
+          <a href="ver_perfil_prof.html?id=${prof.id}" class="btn-ver-perfil">Ver Perfil</a>
+          <a href="marcacao.html?id=${prof.id}" class="btn-ver-perfil btn-marcar">Marcar</a>
+          <img src="images/coracao_completo.png"
+               alt="Remover Favorito"
+               class="icone-favorito"
+               data-favorito="true"
+               onclick="removerFavorito(this, '${prof.id}')">
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function removerFavorito(el, profissionalId) {
+      if (!userId) {
+        alert("Precisa de estar autenticado.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("favoritos")
+        .delete()
+        .eq("cliente_id", userId)
+        .eq("profissional_id", profissionalId);
+
+      if (!error) {
+        el.closest(".profissional").remove();
+      } else {
+        alert("Erro ao remover dos favoritos.");
+        console.error(error);
+      }
+    }
+
+    carregarFavoritos();
+  </script>
+</body>
+</html>

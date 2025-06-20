@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Criar Conta - SOS Casa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Aspeto de App no iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#4f0fff">
+
+  <!-- Ícone e manifest -->
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      background: url('images/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .overlay {
+      width: 100%;
+      max-width: 500px;
+      padding: 20px;
+    }
+
+    h2 {
+      font-size: 36px;
+      color: #000;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    form {
+      background-color: #4f0fff;
+      padding: 40px 30px;
+      border-radius: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    input, select {
+      padding: 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 30px;
+      text-align: center;
+      width: 100%;
+    }
+
+    button {
+      background-color: white;
+      color: #000;
+      border: none;
+      padding: 15px;
+      font-size: 18px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    label {
+      color: white;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .link {
+      margin-top: 20px;
+      font-size: 14px;
+      background-color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+
+    .link a {
+      color: #5a00ff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    #mensagem {
+      margin-top: 15px;
+      font-weight: bold;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <h2>Criar Conta - SOS Casa</h2>
+
+    <form onsubmit="signUp(event)">
+      <input type="text" id="nome" placeholder="Nome" required />
+      <input type="text" id="apelido" placeholder="Apelido" required />
+      <input type="tel" id="telemovel" placeholder="Telemóvel" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <input type="password" id="confirmPassword" placeholder="Confirmar Password" required />
+
+      <select id="tipo" required onchange="mostrarEspecialidades()">
+        <option value="">Tipo de utilizador</option>
+        <option value="cliente">Cliente</option>
+        <option value="profissional">Profissional</option>
+      </select>
+
+      <div id="especialidades-container" style="display: none;">
+        <label for="especialidade">Especialidade:</label>
+        <select id="especialidade">
+          <option value="">Escolhe a especialidade</option>
+          <option value="eletricidade">Eletricidade</option>
+          <option value="carpintaria">Carpintaria</option>
+          <option value="limpeza">Limpeza</option>
+          <option value="canalizacao">Canalização</option>
+        </select>
+      </div>
+
+      <button type="submit">Criar Conta</button>
+    </form>
+
+    <div class="link">
+      Já tens conta? <a href="login.html">Entrar aqui</a>
+    </div>
+
+    <p id="mensagem"></p>
+  </div>
+
+  <script>
+    const client = supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    function mostrarEspecialidades() {
+      const tipo = document.getElementById("tipo").value;
+      const container = document.getElementById("especialidades-container");
+      if (tipo === "profissional") {
+        container.style.display = "block";
+        document.getElementById("especialidade").required = true;
+      } else {
+        container.style.display = "none";
+        document.getElementById("especialidade").required = false;
+      }
+    }
+
+    async function signUp(event) {
+      event.preventDefault();
+
+      const nome = document.getElementById("nome").value.trim();
+      const apelido = document.getElementById("apelido").value.trim();
+      const telemovel = document.getElementById("telemovel").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      const tipo = document.getElementById("tipo").value;
+      const especialidade = document.getElementById("especialidade").value;
+      const mensagem = document.getElementById("mensagem");
+
+      if (password !== confirmPassword) {
+        mensagem.innerText = "As passwords não coincidem.";
+        return;
+      }
+
+      if (tipo === "profissional" && !especialidade) {
+        mensagem.innerText = "Escolhe uma especialidade.";
+        return;
+      }
+
+      const { data: signUpData, error } = await client.auth.signUp({ email, password });
+
+      if (error) {
+        mensagem.innerText = "Erro ao criar conta: " + error.message;
+        return;
+      }
+
+      const userId = signUpData?.user?.id;
+      if (!userId) {
+        mensagem.innerText = "Conta criada! Confirma o teu email.";
+        return;
+      }
+
+      const { data: existingProfile } = await client
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (existingProfile) {
+        mensagem.innerText = "Erro: Já existe um perfil associado a esta conta.";
+        return;
+      }
+
+      const { error: profileError } = await client.from('profiles').insert([{
+        id: userId,
+        email,
+        tipo,
+        nome,
+        apelido,
+        telemovel,
+        especialidade: tipo === "profissional" ? especialidade : null,
+        aprovado: tipo === "profissional" ? false : true,
+        created_at: new Date().toISOString()
+      }]);
+
+      if (profileError) {
+        mensagem.innerText = "Conta criada, mas erro ao guardar perfil: " + profileError.message;
+      } else {
+        mensagem.innerText = "Conta criada com sucesso! Confirma o teu e-mail.";
+      }
+    }
+  </script>
+</body>
+</html>

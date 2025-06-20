@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Minhas Marcações - Cliente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('images/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+    header {
+      background-color: #4f0fff;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .logout-btn {
+      border: 2px solid white;
+      background: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .voltar-btn-container {
+      padding: 16px;
+    }
+    .voltar-btn {
+      background-color: #f1e2cd;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .voltar-btn:hover {
+      background-color: #e0d1bb;
+    }
+    .container {
+      max-width: 95%;
+      margin: 20px auto;
+      background: rgba(255,255,255,0.95);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 22px;
+    }
+    .marcacao {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      font-size: 14px;
+    }
+    .marcacao p {
+      margin: 5px 0;
+    }
+    .marcacao button {
+      margin-top: 8px;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+    }
+    .marcacao button:hover {
+      background-color: #218838;
+    }
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 8px;
+    }
+    .avaliacao {
+      margin-top: 10px;
+    }
+    .estrelas {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+      margin: 10px 0;
+    }
+    .estrela {
+      font-size: 26px;
+      color: #ccc;
+      cursor: pointer;
+    }
+    .estrela.selecionada {
+      color: gold;
+    }
+    .mensagem {
+      text-align: center;
+      font-weight: bold;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Minhas Marcações</h1>
+    <button class="logout-btn" onclick="logout()">LogOut</button>
+  </header>
+
+  <div class="voltar-btn-container">
+    <a href="home_cliente.html">
+      <button class="voltar-btn">Voltar à Home</button>
+    </a>
+  </div>
+
+  <div class="container">
+    <h2>Marcações Aceites</h2>
+    <div id="marcacoes" class="mensagem">A carregar...</div>
+  </div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    async function logout() {
+      await supabase.auth.signOut();
+      window.location.href = "login.html";
+    }
+
+    async function carregarMarcacoesCliente() {
+      const { data: session } = await supabase.auth.getUser();
+      const clienteId = session?.user?.id;
+      if (!clienteId) return;
+
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .eq('estado', 'aceite')
+        .order('data', { ascending: false });
+
+      const container = document.getElementById("marcacoes");
+
+      if (error || !data) {
+        container.innerText = "Erro ao carregar marcações.";
+        return;
+      }
+
+      if (data.length === 0) {
+        container.innerText = "Ainda não tem marcações aceites.";
+        return;
+      }
+
+      container.innerHTML = "";
+
+      data.forEach(p => {
+        const dataHora = new Date(`${p.data}T${p.hora_inicio}`);
+        const agora = new Date();
+        const confirmado = p.confirmado_pelo_cliente;
+        const podeConfirmar = !confirmado && dataHora < agora;
+
+        const div = document.createElement("div");
+        div.className = "marcacao";
+
+        div.innerHTML = `
+          <p><strong>Data:</strong> ${p.data} às ${p.hora_inicio}</p>
+          <p><strong>Morada:</strong> ${p.morada}</p>
+          <p><strong>Telefone:</strong> ${p.telefone}</p>
+          <p><strong>Observações:</strong> ${p.observacao || "—"}</p>
+          ${podeConfirmar ? `
+            <button onclick="confirmarServico('${p.id}', '${p.profissional_id}')">Confirmar Serviço</button>
+          ` : confirmado ? `
+            <p><em>Serviço confirmado ✅</em></p>
+            <div class="avaliacao">
+              <div class="estrelas" data-id="${p.id}">
+                ${[1,2,3,4,5].map(n => `<span class="estrela" data-valor="${n}">★</span>`).join("")}
+              </div>
+              <input type="hidden" id="estrelas-${p.id}" value="0">
+              <textarea id="comentario-${p.id}" placeholder="Comentário opcional..."></textarea>
+              <button class="avaliar-btn" data-agendamento="${p.id}" data-profissional="${p.profissional_id}">Avaliar</button>
+            </div>
+          ` : `<p><em>Serviço ainda não concluído</em></p>`}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function confirmarServico(agendamentoId, profissionalId) {
+      const { data: user } = await supabase.auth.getUser();
+      const clienteId = user?.user?.id;
+      if (!clienteId) {
+        alert("Erro na autenticação.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("agendamentos")
+        .update({ confirmado_pelo_cliente: true })
+        .eq("id", agendamentoId)
+        .eq("cliente_id", clienteId);
+
+      if (error) {
+        alert("Erro ao confirmar serviço.");
+        console.error(error);
+      } else {
+        alert("Serviço confirmado com sucesso!");
+        carregarMarcacoesCliente();
+      }
+    }
+
+    async function submeterAvaliacao(agendamentoId, profissionalId) {
+      const estrelas = parseInt(document.querySelector(`#estrelas-${agendamentoId}`).value);
+      const comentario = document.querySelector(`#comentario-${agendamentoId}`).value;
+      if (!estrelas || estrelas < 1 || estrelas > 5) {
+        alert("Escolha entre 1 a 5 estrelas.");
+        return;
+      }
+
+      const { data: user } = await supabase.auth.getUser();
+      const clienteId = user?.user?.id;
+
+      const { data: jaExiste } = await supabase
+        .from("avaliacoes")
+        .select("id")
+        .eq("agendamento_id", agendamentoId)
+        .maybeSingle();
+
+      if (jaExiste) {
+        alert("Já avaliou este serviço.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("avaliacoes")
+        .insert([{
+          agendamento_id: agendamentoId,
+          cliente_id: clienteId,
+          profissional_id: profissionalId,
+          estrelas,
+          comentario
+        }]);
+
+      if (!error) {
+        alert("Avaliação enviada com sucesso.");
+        carregarMarcacoesCliente();
+      } else {
+        alert("Erro ao enviar avaliação.");
+      }
+    }
+
+    document.addEventListener("mouseover", e => {
+      if (e.target.classList.contains("estrela")) {
+        const valor = parseInt(e.target.dataset.valor);
+        const container = e.target.parentElement;
+        [...container.children].forEach(star => {
+          star.classList.toggle("selecionada", parseInt(star.dataset.valor) <= valor);
+        });
+      }
+    });
+
+    document.addEventListener("click", e => {
+      if (e.target.classList.contains("estrela")) {
+        const valor = parseInt(e.target.dataset.valor);
+        const container = e.target.parentElement;
+        const input = document.getElementById(`estrelas-${container.dataset.id}`);
+        if (input) input.value = valor;
+
+        [...container.children].forEach(star => {
+          star.classList.toggle("selecionada", parseInt(star.dataset.valor) <= valor);
+        });
+      }
+
+      if (e.target.classList.contains("avaliar-btn")) {
+        const agendamentoId = e.target.dataset.agendamento;
+        const profissionalId = e.target.dataset.profissional;
+        submeterAvaliacao(agendamentoId, profissionalId);
+      }
+    });
+
+    carregarMarcacoesCliente();
+  </script>
+</body>
+</html>

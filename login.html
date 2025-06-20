@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Entrar - SOS Casa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Aspeto de App no iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#4f0fff">
+
+  <!-- Ícone e manifest -->
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      font-size: 16px; /* evita zoom automático no iOS */
+      background: url('images/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .overlay {
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+      padding: 20px;
+    }
+
+    h2 {
+      font-size: 36px;
+      font-weight: bold;
+      color: #000;
+      margin-bottom: 20px;
+    }
+
+    form {
+      background-color: #4f0fff;
+      padding: 30px 20px;
+      border-radius: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    input {
+      padding: 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 30px;
+      text-align: center;
+    }
+
+    button {
+      background-color: rgb(196, 193, 193);
+      color: #000;
+      border: none;
+      padding: 15px;
+      font-size: 18px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    .link {
+      margin-top: 15px;
+      font-size: 14px;
+      background-color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+
+    .link a {
+      color: #5a00ff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    #mensagem {
+      margin-top: 15px;
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <h2>SOS Casa</h2>
+
+    <form onsubmit="signIn(event)">
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Entrar</button>
+    </form>
+
+    <div class="link">
+      Ainda não tens conta? <a href="sign-up.html">Cria uma aqui!</a>
+    </div>
+
+    <p id="mensagem"></p>
+  </div>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <!-- Script de autenticação -->
+  <script>
+    const supabaseUrl = 'https://fqshqdfhmptuvjskptzl.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function signIn(event) {
+      event.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const mensagem = document.getElementById("mensagem");
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        mensagem.innerText = "Erro: " + error.message;
+        return;
+      }
+
+      const user = data.user;
+      if (!user.email_confirmed_at) {
+        mensagem.innerText = "Confirma o teu email antes de entrares.";
+        return;
+      }
+
+      const { data: perfil, error: perfilError } = await supabase
+        .from('profiles')
+        .select('tipo')
+        .eq('id', user.id)
+        .single();
+
+      if (perfilError || !perfil) {
+        mensagem.innerText = "Erro ao obter perfil do utilizador.";
+        return;
+      }
+
+      switch (perfil.tipo) {
+        case 'cliente':
+          window.location.href = "home_cliente.html";
+          break;
+        case 'profissional':
+          window.location.href = "home_prof.html";
+          break;
+        case 'admin':
+          window.location.href = "home_admin.html";
+          break;
+        default:
+          mensagem.innerText = "Tipo de utilizador desconhecido.";
+      }
+    }
+  </script>
+</body>
+</html>

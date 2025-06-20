@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marcar Serviço - SOS Casa</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: url('fundo.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    .voltar-wrapper {
+      padding: 16px;
+    }
+
+    .voltar-btn {
+      background-color: #f1e2cd;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .voltar-btn:hover {
+      background-color: #e0d1bb;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 10px auto 40px;
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #333;
+      text-align: center;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 6px;
+      margin-bottom: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+
+    button[type="submit"] {
+      background-color: #4b12ea;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button[type="submit"]:hover {
+      background-color: #370ec6;
+    }
+
+    #horarios {
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+      padding: 10px 0;
+      flex-wrap: nowrap;
+    }
+
+    #horarios button {
+      flex: 0 0 auto;
+      padding: 6px 5px;
+      font-size: 14px;
+      height: 32px;
+      width: 50px;
+      border: none;
+      border-radius: 6px;
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: bold;
+    }
+
+    #horarios button:hover {
+      background-color: #0056b3;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        margin: 20px;
+        padding: 20px;
+      }
+
+      input, select, textarea, button {
+        font-size: 14px;
+        padding: 10px;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+
+      #horarios button {
+        font-size: 13px;
+        padding: 5px 8px;
+        height: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="voltar-wrapper">
+    <button class="voltar-btn" onclick="history.back()"> Voltar </button>
+  </div>
+
+  <div class="container">
+    <h2>Marcar Serviço</h2>
+
+    <label for="data">Data:</label>
+    <input type="date" id="data" required onchange="carregarHorarios()">
+
+    <label><strong>Horários disponíveis:</strong></label>
+    <div id="horarios"></div>
+
+    <form id="formAgendamento">
+      <input type="hidden" id="hora_escolhida" required>
+
+      <label for="telefone">Telefone:</label>
+      <input type="tel" id="telefone" required>
+
+      <label for="morada">Morada:</label>
+      <input type="text" id="morada" required>
+
+      <label for="observacao">Observações:</label>
+      <textarea id="observacao" placeholder="Ex: trazer escada, campainha avariada..."></textarea>
+
+      <button type="submit">Confirmar Marcação</button>
+    </form>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const profissional_id = urlParams.get('id');
+    let cliente_id = null;
+
+    function somar30Min(hora) {
+      const [h, m] = hora.split(':').map(Number);
+      const novaHora = new Date(0, 0, 0, h, m + 30);
+      return novaHora.toTimeString().slice(0, 5);
+    }
+
+    function gerarHorasInicioFim(inicio, fim) {
+      const horas = [];
+      for (let h = inicio; h <= fim; h++) {
+        horas.push(String(h).padStart(2, '0') + ":00");
+        horas.push(String(h).padStart(2, '0') + ":30");
+      }
+      return horas;
+    }
+
+    async function carregarHorarios() {
+      const dataSelecionada = document.getElementById('data').value;
+      if (!dataSelecionada) return;
+
+      const hoje = new Date();
+      const dataEscolhida = new Date(dataSelecionada);
+      const horaAtual = hoje.getHours() + ":" + String(hoje.getMinutes()).padStart(2, '0');
+
+      const { data: agendamentos } = await supabase
+        .from('agendamentos')
+        .select('hora_inicio')
+        .eq('profissional_id', profissional_id)
+        .eq('data', dataSelecionada);
+
+      const ocupados = agendamentos?.map(a => a.hora_inicio.slice(0, 5)) || [];
+      const todos = gerarHorasInicioFim(9, 17);
+
+      let livres = todos.filter(h => !ocupados.includes(h));
+
+      if (dataEscolhida.toDateString() === hoje.toDateString()) {
+        livres = livres.filter(h => h > horaAtual);
+      }
+
+      const div = document.getElementById("horarios");
+      div.innerHTML = "";
+      livres.forEach(h => {
+        const btn = document.createElement("button");
+        btn.textContent = h;
+        btn.type = "button";
+        btn.onclick = () => {
+          document.getElementById("hora_escolhida").value = h;
+          alert(`Horário selecionado: ${h}`);
+        };
+        div.appendChild(btn);
+      });
+    }
+
+    async function carregarDadosCliente() {
+      const { data: session } = await supabase.auth.getUser();
+      if (!session?.user) {
+        alert("Precisa de estar autenticado para agendar.");
+        return;
+      }
+      cliente_id = session.user.id;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("telemovel, morada")
+        .eq("id", cliente_id)
+        .single();
+
+      if (data) {
+        document.getElementById("telefone").value = data.telemovel || "";
+        document.getElementById("morada").value = data.morada || "";
+      } else {
+        console.error("Erro ao carregar dados do cliente:", error);
+      }
+    }
+
+    document.getElementById("formAgendamento").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const data = document.getElementById("data").value;
+      const hora = document.getElementById("hora_escolhida").value;
+      const telefone = document.getElementById("telefone").value.trim();
+      const morada = document.getElementById("morada").value.trim();
+      const observacao = document.getElementById("observacao").value.trim();
+
+      if (!data || !hora || !telefone || !morada) {
+        alert("Preenche todos os campos obrigatórios.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("agendamentos")
+        .insert({
+          cliente_id,
+          profissional_id,
+          data,
+          hora_inicio: hora,
+          hora_fim: somar30Min(hora),
+          telefone,
+          morada,
+          observacao,
+          estado: 'pendente'
+        });
+
+      if (error) {
+        alert("Erro ao marcar: " + error.message);
+      } else {
+        alert("Agendamento enviado para aprovação!");
+        window.location.href = "home_cliente.html";
+      }
+    });
+
+    function bloquearDatasAntigas() {
+      const hoje = new Date().toISOString().split("T")[0];
+      document.getElementById("data").setAttribute("min", hoje);
+    }
+
+    carregarDadosCliente();
+    bloquearDatasAntigas();
+  </script>
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Notificações - Profissional</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('images/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    header {
+      background-color: #4f0fff;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .logout-btn {
+      border: 2px solid white;
+      background: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .logout-btn:hover {
+      background-color: white;
+      color: #4f0fff;
+    }
+
+    .container {
+      max-width: 95%;
+      margin: 20px auto;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 16px;
+      font-size: 22px;
+    }
+
+    .pedido {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      font-size: 14px;
+    }
+
+    .pedido p {
+      margin: 5px 0;
+    }
+
+    .pedido button {
+      margin: 6px 6px 0 0;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .aceitar {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .aceitar:hover {
+      background-color: #218838;
+    }
+
+    .recusar {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .recusar:hover {
+      background-color: #c82333;
+    }
+
+    .ver-perfil {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .ver-perfil:hover {
+      background-color: #0056b3;
+    }
+
+    .mensagem-estado {
+      text-align: center;
+      font-weight: bold;
+      color: #555;
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 18px;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .logout-btn {
+        font-size: 14px;
+        padding: 5px 10px;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+
+      .pedido {
+        font-size: 13px;
+      }
+
+      .pedido button {
+        width: 100%;
+        margin: 6px 0;
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Notificações</h1>
+    <button class="logout-btn" onclick="logout()">LogOut</button>
+  </header>
+
+  <div style="padding: 16px;">
+    <button onclick="history.back()" style="
+      background-color: #f1e2cd;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+    ">
+      ← Voltar atrás
+    </button>
+  </div>
+
+  <div class="container">
+    <h2>Pedidos de Marcação Pendentes</h2>
+    <div id="notificacoes" class="mensagem-estado">A carregar...</div>
+  </div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    let profissionalId = null;
+
+    async function logout() {
+      await supabase.auth.signOut();
+      window.location.href = "login.html";
+    }
+
+    async function carregarNotificacoes() {
+      const { data: session } = await supabase.auth.getUser();
+      const container = document.getElementById("notificacoes");
+
+      if (!session?.user) {
+        container.innerText = "Precisa de estar autenticado.";
+        return;
+      }
+
+      profissionalId = session.user.id;
+
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*, cliente:cliente_id (id, nome, apelido)')
+        .eq('profissional_id', profissionalId)
+        .eq('estado', 'pendente');
+
+      if (error || !data) {
+        container.innerText = "Erro ao carregar notificações.";
+        console.error(error);
+        return;
+      }
+
+      if (data.length === 0) {
+        container.innerText = "Nenhum pedido pendente.";
+        return;
+      }
+
+      container.innerHTML = "";
+      data.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "pedido";
+        div.innerHTML = `
+          <p><strong>Data:</strong> ${p.data} às ${p.hora_inicio}</p>
+          <p><strong>Telefone:</strong> ${p.telefone}</p>
+          <p><strong>Morada:</strong> ${p.morada}</p>
+          <p><strong>Observações:</strong> ${p.observacao || "—"}</p>
+          <button class="aceitar" onclick="responderPedido('${p.id}', 'aceite')">Aceitar</button>
+          <button class="recusar" onclick="responderPedido('${p.id}', 'recusado')">Recusar</button>
+          <button class="ver-perfil" onclick="verPerfilCliente('${p.cliente.id}')">Ver Perfil</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function verPerfilCliente(clienteId) {
+      window.location.href = `ver_perfil_cliente.html?id=${clienteId}`;
+    }
+
+    async function responderPedido(id, estado) {
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({
+          estado,
+          visto_pelo_profissional: true
+        })
+        .eq('id', id);
+
+      if (error) {
+        alert("Erro ao atualizar estado.");
+        console.error(error);
+      } else {
+        alert("Pedido " + (estado === 'aceite' ? "aceite" : "recusado") + " com sucesso.");
+        carregarNotificacoes();
+      }
+    }
+
+    carregarNotificacoes();
+  </script>
+</body>
+</html>

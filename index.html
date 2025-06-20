@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOS CASA</title>
+
+  <!-- Aspeto de App no iPhone -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#4f0fff">
+
+  <!-- Ícone (opcional, se tiveres um icon.png de 192x192) -->
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: Arial, sans-serif;
+      font-size: 16px; /* evita zoom automático em inputs no iOS */
+    }
+
+    body {
+      background: url('images/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 36px;
+      color: #000;
+      font-weight: bold;
+    }
+
+    .subtitle {
+      font-size: 20px;
+      color: #222;
+    }
+
+    .highlight {
+      color: #5a00ff;
+      font-weight: bold;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .buttons {
+      background-color: #4f0fff;
+      padding: 40px 30px;
+      border-radius: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      min-width: 90%;
+      max-width: 400px;
+    }
+
+    .buttons a {
+      text-decoration: none;
+    }
+
+    .auth-btn {
+      background-color: white;
+      color: #000;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 50px;
+      font-size: 18px;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+
+    .auth-btn:hover {
+      background-color: #eee;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <h1>Bem-Vindo Ao SOS Casa!</h1>
+    <p class="subtitle">Serviços à porta de um</p>
+    <p class="highlight">Clique!</p>
+
+    <div class="buttons">
+      <a href="login.html"><button class="auth-btn">Iniciar Sessão</button></a>
+      <a href="sign-up.html"><button class="auth-btn">Criar Conta</button></a>
+    </div>
+  </div>
+</body>
+</html>

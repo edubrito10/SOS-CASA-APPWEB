@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Minhas Marcações - Profissional</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('images/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    header {
+      background-color: #4f0fff;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .logout-btn {
+      border: 2px solid white;
+      background: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .logout-btn:hover {
+      background-color: white;
+      color: #4f0fff;
+    }
+
+    .container {
+      max-width: 95%;
+      margin: 20px auto;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 16px;
+      font-size: 22px;
+    }
+
+    .marcacao {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      font-size: 14px;
+    }
+
+    .marcacao p {
+      margin: 5px 0;
+    }
+
+    .mensagem-estado {
+      text-align: center;
+      font-weight: bold;
+      color: #555;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 18px;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .logout-btn {
+        font-size: 14px;
+        padding: 5px 10px;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+
+      .marcacao {
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Minhas Marcações</h1>
+    <button class="logout-btn" onclick="logout()">LogOut</button>
+  </header>
+
+  <div style="padding: 16px;">
+    <button onclick="history.back()" style="
+      background-color: #f1e2cd;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+    ">
+      ← Voltar atrás
+    </button>
+  </div>
+
+  <div class="container">
+    <h2>Marcações Confirmadas</h2>
+    <div id="marcacoes" class="mensagem-estado">A carregar...</div>
+  </div>
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    async function logout() {
+      await supabase.auth.signOut();
+      window.location.href = "login.html";
+    }
+
+    async function carregarMarcacoes() {
+      const { data: session } = await supabase.auth.getUser();
+      const container = document.getElementById("marcacoes");
+
+      if (!session?.user) {
+        container.innerText = "Precisa de estar autenticado.";
+        return;
+      }
+
+      const profissionalId = session.user.id;
+
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .eq('profissional_id', profissionalId)
+        .eq('estado', 'aceite')
+        .order('data', { ascending: false })
+        .order('hora_inicio', { ascending: false });
+
+      if (error || !data) {
+        container.innerText = "Erro ao carregar marcações.";
+        console.error(error);
+        return;
+      }
+
+      if (data.length === 0) {
+        container.innerText = "Não tem marcações aceites.";
+        return;
+      }
+
+      container.innerHTML = "";
+      data.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "marcacao";
+        div.innerHTML = `
+          <p><strong>Data:</strong> ${p.data} às ${p.hora_inicio}</p>
+          <p><strong>Morada:</strong> ${p.morada}</p>
+          <p><strong>Telefone:</strong> ${p.telefone}</p>
+          <p><strong>Observações:</strong> ${p.observacao || "—"}</p>
+          <p><strong>Confirmação do Cliente:</strong> ${p.confirmado_pelo_cliente ? "✅ Confirmado" : "❌ Por confirmar"}</p>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    carregarMarcacoes();
+  </script>
+</body>
+</html>

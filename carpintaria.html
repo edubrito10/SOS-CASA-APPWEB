@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Profissionais de Carpintaria - SOS Casa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#4b12ea">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      background: url('fundo.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    .header {
+      background-color: #4b12ea;
+      color: white;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .logout-btn {
+      background-color: #f1e2cd;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .logout-btn:hover {
+      background-color: #e0d1bb;
+    }
+
+    .container {
+      max-width: 95%;
+      margin: 20px auto;
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #333;
+      font-size: 20px;
+    }
+
+    .filtros {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    select, input[type="text"], button {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      width: 100%;
+    }
+
+    .btn-filtrar {
+      background-color: #4b12ea;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-filtrar:hover {
+      background-color: #370ec6;
+    }
+
+    .btn-limpar {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-limpar:hover {
+      background-color: #c82333;
+    }
+
+    .profissional {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .profissional p {
+      margin: 5px 0;
+    }
+
+    .btn-ver-perfil {
+      display: inline-block;
+      padding: 8px 12px;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+
+    .btn-marcar {
+      background-color: #FFA500;
+      margin-left: 10px;
+    }
+
+    .icone-favorito {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      margin-left: 10px;
+      vertical-align: middle;
+      transition: transform 0.2s;
+    }
+
+    .icone-favorito:hover {
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Profissionais de Carpintaria</h1>
+    <a href="home_cliente.html"><button class="logout-btn">Voltar à Home</button></a>
+  </div>
+
+  <div class="container">
+    <h2>Disponíveis para marcação</h2>
+
+    <div class="filtros">
+      <select id="distrito" onchange="preencherConcelhos()">
+        <option value="">-- Escolher distrito --</option>
+      </select>
+
+      <select id="concelho">
+        <option value="">-- Escolher concelho --</option>
+      </select>
+
+      <input type="text" id="barra-pesquisa" placeholder="Pesquisar por nome..." oninput="carregarProfissionais()" />
+
+      <button class="btn-filtrar" onclick="carregarProfissionais()">Filtrar</button>
+      <button class="btn-limpar" onclick="limparFiltros()">Limpar</button>
+    </div>
+
+    <div id="lista-profissionais">A carregar...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://fqshqdfhmptuvjskptzl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc2hxZGZobXB0dXZqc2twdHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzcxNzEsImV4cCI6MjA2MjA1MzE3MX0.YuDcyfe8v6ff4Y88GuNjDV-CsLz_k1AM4c49ozk-RdY'
+    );
+
+    let distritosConcelhos = {};
+    let userId = null;
+    let favoritosIds = [];
+
+    async function carregarDistritos() {
+      const response = await fetch("localidades.json");
+      distritosConcelhos = await response.json();
+
+      const selectDistrito = document.getElementById("distrito");
+      Object.keys(distritosConcelhos).forEach(distrito => {
+        const option = document.createElement("option");
+        option.value = distrito;
+        option.textContent = distrito;
+        selectDistrito.appendChild(option);
+      });
+    }
+
+    function preencherConcelhos() {
+      const distrito = document.getElementById("distrito").value;
+      const selectConcelho = document.getElementById("concelho");
+      selectConcelho.innerHTML = '<option value="">-- Escolher concelho --</option>';
+
+      if (distrito && distritosConcelhos[distrito]) {
+        distritosConcelhos[distrito].forEach(concelho => {
+          const option = document.createElement("option");
+          option.value = concelho;
+          option.textContent = concelho;
+          selectConcelho.appendChild(option);
+        });
+      }
+    }
+
+    function limparFiltros() {
+      document.getElementById("distrito").value = "";
+      document.getElementById("concelho").innerHTML = '<option value="">-- Escolher concelho --</option>';
+      document.getElementById("barra-pesquisa").value = "";
+      carregarProfissionais();
+    }
+
+    async function toggleFavorito(el, profissionalId) {
+      const isFavorito = el.dataset.favorito === "true";
+
+      if (!userId) {
+        alert("Precisa de estar autenticado.");
+        return;
+      }
+
+      if (isFavorito) {
+        const { error } = await supabase
+          .from("favoritos")
+          .delete()
+          .eq("cliente_id", userId)
+          .eq("profissional_id", profissionalId);
+
+        if (!error) {
+          el.src = "images/coracao_vazio.png";
+          el.dataset.favorito = "false";
+        } else {
+          alert("Erro ao remover dos favoritos.");
+        }
+      } else {
+        const { error } = await supabase
+          .from("favoritos")
+          .insert([{ cliente_id: userId, profissional_id: profissionalId }]);
+
+        if (!error) {
+          el.src = "images/coracao_completo.png";
+          el.dataset.favorito = "true";
+        } else {
+          alert("Erro ao adicionar aos favoritos.");
+        }
+      }
+    }
+
+    async function carregarProfissionais() {
+      const container = document.getElementById("lista-profissionais");
+      container.innerHTML = "A carregar...";
+
+      const { data: session } = await supabase.auth.getUser();
+      if (!session?.user) {
+        container.innerText = "Precisa de fazer login.";
+        return;
+      }
+      userId = session.user.id;
+
+      const { data: favoritos } = await supabase
+        .from("favoritos")
+        .select("profissional_id")
+        .eq("cliente_id", userId);
+
+      favoritosIds = favoritos?.map(f => f.profissional_id) || [];
+
+      const distrito = document.getElementById("distrito").value;
+      const concelho = document.getElementById("concelho").value;
+      const termoPesquisa = document.getElementById("barra-pesquisa").value.toLowerCase();
+      const cidade = (distrito && concelho) ? `${distrito} - ${concelho}` : null;
+
+      let query = supabase
+        .from('profiles')
+        .select('id, nome, apelido, email, telemovel, localidade')
+        .eq('tipo', 'profissional')
+        .eq('especialidade', 'carpintaria')
+        .eq('aprovado', true);
+
+      if (cidade) {
+        query = query.eq('localidade', cidade);
+      } else if (distrito) {
+        query = query.like('localidade', `${distrito} -%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error || !data) {
+        container.innerText = "Erro ao carregar profissionais.";
+        return;
+      }
+
+      const filtrados = termoPesquisa
+        ? data.filter(p => `${p.nome} ${p.apelido}`.toLowerCase().includes(termoPesquisa))
+        : data;
+
+      if (filtrados.length === 0) {
+        container.innerText = "Nenhum profissional encontrado.";
+        return;
+      }
+
+      container.innerHTML = "";
+
+      for (const p of filtrados) {
+        const jaFavorito = favoritosIds.includes(p.id);
+
+        const { data: avaliacoes } = await supabase
+          .from('avaliacoes')
+          .select('estrelas')
+          .eq('profissional_id', p.id);
+
+        let mediaTexto = "Sem avaliações";
+        if (avaliacoes?.length > 0) {
+          const total = avaliacoes.reduce((sum, a) => sum + a.estrelas, 0);
+          const media = (total / avaliacoes.length).toFixed(1);
+          mediaTexto = `⭐ ${media}/5 (${avaliacoes.length})`;
+        }
+
+        const div = document.createElement("div");
+        div.className = "profissional";
+        div.innerHTML = `
+          <p><strong>${p.nome} ${p.apelido}</strong></p>
+          <p>Localidade: ${p.localidade || 'Não definida'}</p>
+          <p>Email: ${p.email}</p>
+          <p>Telemóvel: ${p.telemovel}</p>
+          <p>Avaliação: ${mediaTexto}</p>
+          <a href="ver_perfil_prof.html?id=${p.id}" class="btn-ver-perfil">Ver Perfil</a>
+          <a href="marcacao.html?id=${p.id}" class="btn-ver-perfil btn-marcar">Marcar</a>
+          <img src="images/${jaFavorito ? 'coracao_completo' : 'coracao_vazio'}.png"
+               alt="Favorito"
+               class="icone-favorito"
+               data-favorito="${jaFavorito}"
+               onclick="toggleFavorito(this, '${p.id}')">
+        `;
+        container.appendChild(div);
+      }
+    }
+
+    carregarDistritos();
+    carregarProfissionais();
+  </script>
+</body>
+</html>
